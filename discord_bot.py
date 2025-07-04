@@ -23,11 +23,12 @@ class TextGenerator:
         self.tetsu = None
         self.is_initialized = False
         self.init_error = None
-        # バックグラウンドで初期化を実行
-        asyncio.create_task(self._async_init())
     
-    async def _async_init(self):
-        """非同期でテキスト生成器を初期化"""
+    async def initialize(self):
+        """テキスト生成器を初期化（Bot起動後に呼び出し）"""
+        if self.is_initialized:
+            return
+            
         try:
             print("テキスト生成器の初期化を開始...")
             self.f = Fumu(num=1)
@@ -66,6 +67,10 @@ text_generator = TextGenerator()
 async def on_ready():
     print(f'{bot.user} がログインしました！')
     print(f'Bot ID: {bot.user.id}')
+    
+    # テキスト生成器を初期化
+    await text_generator.initialize()
+    
     print("スラッシュコマンドを同期中...")
     # スラッシュコマンドの同期（デプロイ時に重要）
     try:
