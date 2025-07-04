@@ -32,15 +32,44 @@ class TextGenerator:
         try:
             print("テキスト生成器の初期化を開始...")
             self.f = Fumu(num=1)
-            data_path = Path('/app/data/output2.json')
-            if data_path.exists():
-                self.f.read_json(data_path)
-                self.tetsu = Tetsu(self.f.date)
-                self.is_initialized = True
-                print("テキスト生成器が正常に初期化されました")
-            else:
-                self.init_error = f"データファイルが見つかりません: {data_path}"
+            
+            # 複数のパスを試行してデータファイルを探す
+            possible_paths = [
+                Path('/app/data/output2.json'),  # Docker環境
+                Path('./data/output2.json'),     # 相対パス
+                Path('./output2.json'),          # ルートディレクトリ
+                Path('/app/src/data/output2.json'),  # src内のdata
+                Path('/app/src/output2.json'),   # src内
+            ]
+            
+            data_path = None
+            for path in possible_paths:
+                if path.exists():
+                    data_path = path
+                    print(f"データファイルが見つかりました: {data_path}")
+                    break
+            
+            if data_path is None:
+                # デバッグ情報を出力
+                print("利用可能なパス:")
+                import os
+                current_dir = os.getcwd()
+                print(f"現在のディレクトリ: {current_dir}")
+                
+                for root, dirs, files in os.walk('.'):
+                    for file in files:
+                        if 'output2.json' in file:
+                            print(f"見つかったファイル: {os.path.join(root, file)}")
+                
+                self.init_error = f"データファイルが見つかりません。確認したパス: {[str(p) for p in possible_paths]}"
                 print(self.init_error)
+                return
+            
+            self.f.read_json(data_path)
+            self.tetsu = Tetsu(self.f.date)
+            self.is_initialized = True
+            print("テキスト生成器が正常に初期化されました")
+            
         except Exception as e:
             self.init_error = f"テキスト生成器の初期化に失敗しました: {e}"
             print(self.init_error)

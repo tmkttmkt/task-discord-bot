@@ -1,4 +1,4 @@
-app = "untitask-discord-bot"         # 任意のアプリ名
+app = "task-discord-bot"         # 任意のアプリ名
 primary_region = "nrt"        # 東京リージョンなら nrt
 
 kill_signal = "SIGINT"
