@@ -1,0 +1,26 @@
+services:
+  discord-text-bot:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: discord-text-bot
+    volumes:
+      - ./data:/app/data
+      - .:/app/src
+    environment:
+      - DISCORD_TOKEN=${DISCORD_TOKEN}
+      - PYTHONPATH=/app/src
+      - MECABRC=/usr/local/etc/mecabrc
+    working_dir: /app/src
+    command: python discord_bot.py
+    restart: unless-stopped
+    networks:
+      - bot-network
+
+networks:
+  bot-network:
+    driver: bridge
+
+volumes:
+  bot-data:
+    driver: local
