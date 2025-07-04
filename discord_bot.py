@@ -1,5 +1,4 @@
 import discord
-from discord.ext import commands
 import os
 import sys
 from pathlib import Path
@@ -109,6 +108,20 @@ async def on_ready():
         print(f"スラッシュコマンドの同期に失敗しました: {e}")
     print("Bot準備完了！")
 
+@bot.event
+async def on_message(message):
+    # Bot自身のメッセージは無視
+    if message.author == bot.user:
+        return
+    if message.content.strip() == "課題嫌い!!!":
+        await message.channel.send("わかるマーン!!!")
+        return
+    # Botがメンションされた場合
+    if bot.user.mentioned_in(message):
+        await message.reply("課題嫌い", mention_author=False)
+        await message.channel.send("それはそうと課題滅ぶべし")
+        return
+
 @bot.slash_command(name="generate", description="AIによるテキストを生成します")
 async def generate_text(ctx):
     """テキストを生成するスラッシュコマンド"""
@@ -123,6 +136,7 @@ async def generate_text(ctx):
             color=0x00ff00
         )
         await ctx.followup.send(embed=embed)
+        await ctx.followup.send("それはそうと課題滅ぶべし")
     except Exception as e:
         try:
             await ctx.followup.send(f"❌ エラーが発生しました: {e}")
@@ -165,32 +179,6 @@ async def info(ctx):
         inline=True
     )
     await ctx.respond(embed=embed)
-
-# 従来のプレフィックスコマンドも併用したい場合は以下を追加
-@bot.command(name='gen', aliases=['g', 'text'])
-async def generate_text_prefix(ctx):
-    """テキストを生成するプレフィックスコマンド"""
-    try:
-        generated_text = text_generator.generate_text()
-        embed = discord.Embed(
-            title="🤖 生成されたテキスト",
-            description=f"```\n{generated_text}\n```",
-            color=0x00ff00
-        )
-        await ctx.send(embed=embed)
-    except Exception as e:
-        await ctx.send(f"❌ エラーが発生しました: {e}")
-
-@bot.command(name='p')
-async def ping_prefix(ctx):
-    """Botの応答時間を確認するプレフィックスコマンド"""
-    latency = round(bot.latency * 1000)
-    embed = discord.Embed(
-        title="🏓 Pong!",
-        description=f"応答時間: **{latency}ms**",
-        color=0x0099ff
-    )
-    await ctx.send(embed=embed)
 
 if __name__ == '__main__':
     token = os.getenv('DISCORD_TOKEN')
