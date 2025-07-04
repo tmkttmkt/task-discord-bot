@@ -20,28 +20,44 @@ bot = discord.Bot(intents=intents)
 
 class TextGenerator:
     def __init__(self):
+        self.tetsu = None
+        self.is_initialized = False
+        self.init_error = None
+        # バックグラウンドで初期化を実行
+        asyncio.create_task(self._async_init())
+    
+    async def _async_init(self):
+        """非同期でテキスト生成器を初期化"""
         try:
+            print("テキスト生成器の初期化を開始...")
             self.f = Fumu(num=1)
             data_path = Path('/app/data/output2.json')
             if data_path.exists():
                 self.f.read_json(data_path)
                 self.tetsu = Tetsu(self.f.date)
+                self.is_initialized = True
                 print("テキスト生成器が正常に初期化されました")
             else:
-                print(f"データファイルが見つかりません: {data_path}")
-                self.tetsu = None
+                self.init_error = f"データファイルが見つかりません: {data_path}"
+                print(self.init_error)
         except Exception as e:
-            print(f"テキスト生成器の初期化に失敗しました: {e}")
-            self.tetsu = None
+            self.init_error = f"テキスト生成器の初期化に失敗しました: {e}"
+            print(self.init_error)
     
     def generate_text(self):
+        if not self.is_initialized:
+            if self.init_error:
+                return f"❌ 初期化エラー: {self.init_error}"
+            else:
+                return "⏳ テキスト生成器を初期化中です。しばらくお待ちください。"
+        
         if self.tetsu is None:
-            return "テキスト生成器が利用できません。データファイルを確認してください。"
+            return "❌ テキスト生成器が利用できません。データファイルを確認してください。"
         
         try:
             return self.tetsu.create_text()
         except Exception as e:
-            return f"テキスト生成中にエラーが発生しました: {e}"
+            return f"❌ テキスト生成中にエラーが発生しました: {e}"
 
 # テキスト生成器のインスタンス
 text_generator = TextGenerator()
@@ -50,12 +66,22 @@ text_generator = TextGenerator()
 async def on_ready():
     print(f'{bot.user} がログインしました！')
     print(f'Bot ID: {bot.user.id}')
+    print("スラッシュコマンドを同期中...")
+    # スラッシュコマンドの同期（デプロイ時に重要）
+    try:
+        synced = await bot.sync_commands()
+        print(f"スラッシュコマンドが同期されました: {len(synced)}個")
+    except Exception as e:
+        print(f"スラッシュコマンドの同期に失敗しました: {e}")
+    print("Bot準備完了！")
 
 @bot.slash_command(name="generate", description="AIによるテキストを生成します")
 async def generate_text(ctx):
     """テキストを生成するスラッシュコマンド"""
-    await ctx.defer()
     try:
+        # まず応答してからテキスト生成を行う
+        await ctx.respond("🤖 テキストを生成中です...", ephemeral=True)
+        
         generated_text = text_generator.generate_text()
         embed = discord.Embed(
             title="🤖 生成されたテキスト",
@@ -64,7 +90,11 @@ async def generate_text(ctx):
         )
         await ctx.followup.send(embed=embed)
     except Exception as e:
-        await ctx.followup.send(f"❌ エラーが発生しました: {e}")
+        try:
+            await ctx.followup.send(f"❌ エラーが発生しました: {e}")
+        except:
+            # フォローアップが失敗した場合は新しいメッセージを送信
+            await ctx.send(f"❌ エラーが発生しました: {e}")
 
 @bot.slash_command(name="ping", description="Botの応答時間を確認します")
 async def ping(ctx):
