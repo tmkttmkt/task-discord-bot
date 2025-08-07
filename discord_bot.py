@@ -116,8 +116,8 @@ async def on_message(message):
     if message.content.strip() == "課題嫌い!!!":
         await message.channel.send("わかるマーン!!!")
         return
-    # Botがメンションされた場合
-    if bot.user.mentioned_in(message):
+    # Botがメンションされた場合（@everyone/@hereは除外）
+    if bot.user.mentioned_in(message) and not message.mention_everyone:
         await message.reply("課題嫌い", mention_author=False)
         await message.channel.send("それはそうと課題滅ぶべし")
         return
